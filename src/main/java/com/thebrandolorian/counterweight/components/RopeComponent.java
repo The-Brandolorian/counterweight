@@ -6,6 +6,7 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.codec.codecs.array.ArrayCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
+import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 
@@ -33,6 +34,8 @@ public class RopeComponent implements Component<EntityStore> {
     private boolean isLooped = false;
     private List<UUID> nodes = new ArrayList<>();
 
+    private List<Vector3d> cachedNodePositions = new ArrayList<>();
+
     // Getters & Setters
     public float getTotalLength() { return totalLength; }
     public void setTotalLength(float totalLength) { this.totalLength = totalLength; }
@@ -45,6 +48,9 @@ public class RopeComponent implements Component<EntityStore> {
 
     public List<UUID> getNodes() { return nodes; }
     public void setNodes(List<UUID> nodes) { this.nodes = new ArrayList<>(nodes); }
+
+    public List<Vector3d> getCachedNodePositions() { return cachedNodePositions; }
+    public void setCachedNodePositions(List<Vector3d> positions) { this.cachedNodePositions = positions; }
 
     // Util
     public void addNode(UUID entityId) { nodes.add(entityId); }
