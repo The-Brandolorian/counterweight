@@ -2,12 +2,14 @@ package com.thebrandolorian.counterweight;
 
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.thebrandolorian.counterweight.components.PulleyComponent;
 import com.thebrandolorian.counterweight.components.RopeComponent;
 import com.thebrandolorian.counterweight.components.SpoolComponent;
+import com.thebrandolorian.counterweight.interactions.LinkInteraction;
 
 import javax.annotation.Nonnull;
 
@@ -58,7 +60,7 @@ public class CounterweightPlugin extends JavaPlugin {
     }
 
     private void registerInteractions() {
-
+        getCodecRegistry(Interaction.CODEC).register("Link", LinkInteraction.class, LinkInteraction.CODEC);
     }
 
     private void registerSystems() {
