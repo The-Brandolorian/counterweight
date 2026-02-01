@@ -1,0 +1,6 @@
+items.counterweight.Pulley.name = Pulley
+items.counterweight.Pulley.description = Pulley
+items.counterweight.Rope_Spool.name = Rope Spool
+items.counterweight.Rope_Spool.description = A spool of rope for linking pulleys together
+
+interactionHints.counterweight.Link = Press [{key}] to Link

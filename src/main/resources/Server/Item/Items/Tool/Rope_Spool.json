@@ -1,0 +1,65 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.counterweight.Rope_Spool.name",
+    "Description": "server.items.counterweight.Rope_Spool.description"
+  },
+  "Categories": [
+    "Items.Tools"
+  ],
+  "ItemLevel": 10,
+  "Model": "Blocks/Farming/Rope_Vertical.blockymodel",
+  "Texture": "Blocks/Farming/Rope_Vertical_Texture.png",
+  "PlayerAnimationsId": "Item",
+  "IconProperties": {
+    "Scale": 0.58823,
+    "Rotation": [
+      22.5,
+      45,
+      22.5
+    ],
+    "Translation": [
+      0,
+      -13.5
+    ]
+  },
+  "Icon": "Icons/ItemsGenerated/Deco_Rope.png",
+  "Recipe": {
+    "KnowledgeRequired": false,
+    "Input": [
+      {
+        "Quantity": 10,
+        "ResourceTypeId": "Deco_Rope"
+      }
+    ],
+    "BenchRequirement": [
+      {
+        "Id": "Workbench",
+        "Categories": [
+          "Workbench_Tinkering"
+        ]
+      }
+    ],
+    "TimeSeconds": 0.2
+  },
+  "Tags": {
+    "Type": [
+      "Tool"
+    ]
+  },
+  "Quality": "Common",
+  "Tool": {},
+  "ItemSoundSetId": "ISS_Weapons_Wood",
+  "Consumable": false,
+  "MaxDurability": 30,
+  "Interactions": {
+    "Secondary": {
+      "Interactions": [
+        {
+          "Parent": "Link",
+          "DurabilityCost": 1.0
+        }
+      ]
+    }
+  },
+  "Weapon": {}
+}
