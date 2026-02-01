@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 public class CounterweightPlugin extends JavaPlugin {
     private static CounterweightPlugin INSTANCE;
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
+
     private ComponentType<EntityStore, SpoolComponent> spoolComponentType;
     private ComponentType<EntityStore, RopeComponent> ropeComponentType;
     private ComponentType<EntityStore, PulleyComponent> pulleyComponentType;

@@ -1,3 +1,7 @@
 {
-  "Type": "Link"
+  "Type": "Link",
+  "AllowedBlockTags": [ "Linkable" ],
+  "DurabilityCost": 0,
+  "Cooldown": 0.25,
+  "RunTime": 0.1
 }
