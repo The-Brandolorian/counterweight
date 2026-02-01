@@ -13,6 +13,7 @@ import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionSyncData;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -25,9 +26,9 @@ import com.hypixel.hytale.server.core.modules.entity.component.TransformComponen
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.InteractionConfiguration;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.thebrandolorian.counterweight.CounterweightPlugin;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
@@ -58,6 +59,8 @@ public class LinkInteraction extends SimpleInstantInteraction {
 
     protected @Nullable int[] cachedTagIndices;
 
+    enum LinkResult { START, COMPLETE, IGNORED, FAIL_ALIGNMENT, FAIL_DURABILITY }
+
     public LinkInteraction() { }
 
     protected int[] getAllowedBlockTags() {
@@ -78,14 +81,18 @@ public class LinkInteraction extends SimpleInstantInteraction {
 
         // Get components
         InteractionSyncData state = context.getState();
-        Ref<EntityStore> playerRef = context.getEntity();
-        Player player = commandBuffer.getComponent(playerRef, Player.getComponentType());
+        Ref<EntityStore> playerEntity = context.getEntity();
+        Player player = commandBuffer.getComponent(playerEntity, Player.getComponentType());
+        PlayerRef playerRef = playerEntity.getStore().getComponent(playerEntity, PlayerRef.getComponentType());
+
         World world = commandBuffer.getExternalData().getWorld();
-        TransformComponent transformComponent = commandBuffer.getComponent(playerRef, TransformComponent.getComponentType());
-        ModelComponent modelComponent = commandBuffer.getComponent(playerRef, ModelComponent.getComponentType());
-        HeadRotation headRotation = commandBuffer.getComponent(playerRef, HeadRotation.getComponentType());
+        TransformComponent transformComponent = commandBuffer.getComponent(playerEntity, TransformComponent.getComponentType());
+        ModelComponent modelComponent = commandBuffer.getComponent(playerEntity, ModelComponent.getComponentType());
+        HeadRotation headRotation = commandBuffer.getComponent(playerEntity, HeadRotation.getComponentType());
+
         ItemStack heldItem = context.getHeldItem();
-        if (player == null || transformComponent == null || modelComponent == null || headRotation == null || heldItem == null) {
+        ItemContainer heldContainer = context.getHeldItemContainer();
+        if (player == null || playerRef == null || transformComponent == null || modelComponent == null || headRotation == null || heldItem == null || heldContainer == null) {
             state.state = InteractionState.Failed;
             return;
         }
@@ -94,7 +101,7 @@ public class LinkInteraction extends SimpleInstantInteraction {
         InteractionConfiguration heldItemInteractionConfig = heldItem.getItem().getInteractionConfig();
         float distance = heldItemInteractionConfig.getUseDistance(player.getGameMode());
         Vector3d fromPos = transformComponent.getPosition().clone();
-        fromPos.y += (double)modelComponent.getModel().getEyeHeight(playerRef, commandBuffer);
+        fromPos.y += modelComponent.getModel().getEyeHeight(playerEntity, commandBuffer);
         Vector3d lookDir = headRotation.getDirection();
         Vector3d toPos = fromPos.clone().add(lookDir.scale((double)distance));
 
@@ -104,18 +111,48 @@ public class LinkInteraction extends SimpleInstantInteraction {
             BlockType blockType = BlockType.getAssetMap().getAsset(blockId);
 
             if (blockType != null && blockType.getData() != null) {
-                if (blockType.getId().equals("air")) {
-                    CounterweightPlugin.get().getLogger().atSevere().log("Found air");
-                    return true;
-                }
-
                 IntSet blockTags = blockType.getData().getExpandedTagIndexes();
                 int[] allowedTagIndices = this.getAllowedBlockTags();
 
                 for (int tagIndex : blockTags) {
                     if (Arrays.binarySearch(allowedTagIndices, tagIndex) >= 0) {
-                        boolean succeeded = processLinking(context, new Vector3i(x, y, z));
-                        linked.set(succeeded);
+                        Vector3i targetPosition = new Vector3i(x, y, z);
+                        LinkResult result = canLink(heldItem, targetPosition);
+
+                        switch (result) {
+                            case START:
+                                ItemStack startItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, targetPosition);
+                                if (updateHeldItem(context, heldContainer, startItem)) {
+                                    playerRef.sendMessage(Message.translation("server.message.counterweight.link_start"));
+                                    linked.set(true);
+                                }
+                                break;
+
+                            case COMPLETE:
+                                ItemStack linkedItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, null).withDurability(heldItem.getDurability() - durabilityCost);
+                                if (updateHeldItem(context, heldContainer, linkedItem)) {
+                                    // TODO: linking logic - create rope entity/update components?
+
+                                    playerRef.sendMessage(Message.translation("server.message.counterweight.link_complete"));
+                                    linked.set(true);
+                                }
+                                break;
+
+                            case IGNORED:
+                                playerRef.sendMessage(Message.translation("server.message.counterweight.link_error_same"));
+                                linked.set(true);
+                                break;
+
+                            case FAIL_ALIGNMENT:
+                            case FAIL_DURABILITY:
+                                ItemStack clearedItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, null);
+                                if (updateHeldItem(context, heldContainer, clearedItem)) {
+                                    String failType = (result == LinkResult.FAIL_ALIGNMENT) ? "link_fail_alignment" : "link_fail_durability";
+                                    playerRef.sendMessage(Message.translation("server.message.counterweight." + failType));
+                                    linked.set(false);
+                                }
+                                break;
+                        }
                         return false;
                     }
                 }
@@ -128,32 +165,30 @@ public class LinkInteraction extends SimpleInstantInteraction {
         else state.state = InteractionState.Finished;
     }
 
-    private boolean processLinking(InteractionContext context, Vector3i pos) {
-        ItemStack heldItem = context.getHeldItem();
-        ItemContainer heldContainer = context.getHeldItemContainer();
-        if (heldItem == null || heldContainer == null) return false;
-
+    private LinkResult canLink(ItemStack heldItem, Vector3i pos) {
         var sourcePos = heldItem.getFromMetadataOrNull("source_pos", Vector3i.CODEC);
-        if (sourcePos == null) {
-            ItemStack itemWithMetadata = heldItem.withMetadata("source_pos", Vector3i.CODEC, new Vector3i(pos.x, pos.y, pos.z));
-            heldContainer.setItemStackForSlot(context.getHeldItemSlot(), itemWithMetadata);
-            context.setHeldItem(itemWithMetadata);
 
-            CounterweightPlugin.get().getLogger().atInfo().log("Link started");
-        } else {
-            if (sourcePos.equals(pos) || heldItem.getDurability() < durabilityCost) return false;
+        if (sourcePos == null) return LinkResult.START;
+        if (sourcePos.equals(pos)) return LinkResult.IGNORED;
+        if (!checkInline(sourcePos, pos)) return LinkResult.FAIL_ALIGNMENT;
+        if (heldItem.getDurability() < durabilityCost) return LinkResult.FAIL_DURABILITY;
+        return LinkResult.COMPLETE;
+    }
 
-            ItemStack newItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, null).withDurability(heldItem.getDurability() - durabilityCost);
-            ItemStackSlotTransaction transaction = heldContainer.setItemStackForSlot(context.getHeldItemSlot(), newItem);
-            if (!transaction.succeeded()) return false;
+    private boolean checkInline(Vector3i pos1, Vector3i pos2) {
+        int matchingAxes = 0;
+        if (pos1.x == pos2.x) matchingAxes++;
+        if (pos1.y == pos2.y) matchingAxes++;
+        if (pos1.z == pos2.z) matchingAxes++;
 
-            context.setHeldItem(newItem);
+        return matchingAxes >= 2;
+    }
 
-            //TODO: linking logic - create rope entity/update components?
+    private boolean updateHeldItem(InteractionContext context, ItemContainer container, ItemStack newItem) {
+        ItemStackSlotTransaction transaction = container.setItemStackForSlot(context.getHeldItemSlot(), newItem);
+        if (transaction.succeeded()) { context.setHeldItem(newItem); return true; }
 
-            CounterweightPlugin.get().getLogger().atInfo().log("Link complete");
-        }
-        return true;
+        return false;
     }
 
     @Nonnull
