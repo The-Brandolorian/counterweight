@@ -55,8 +55,10 @@
     "Secondary": {
       "Interactions": [
         {
-          "Parent": "Link",
-          "DurabilityCost": 1.0
+          "Type": "Link",
+          "AllowedBlockTags": [ "Linkable" ],
+          "DurabilityCost": 1.0,
+          "RunTime": 0.1
         }
       ]
     }
