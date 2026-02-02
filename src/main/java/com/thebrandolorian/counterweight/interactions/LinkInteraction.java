@@ -29,6 +29,7 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Sim
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.thebrandolorian.counterweight.managers.RopeManager;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
@@ -100,13 +101,13 @@ public class LinkInteraction extends SimpleInstantInteraction {
         // Check block
         InteractionConfiguration heldItemInteractionConfig = heldItem.getItem().getInteractionConfig();
         float distance = heldItemInteractionConfig.getUseDistance(player.getGameMode());
-        Vector3d fromPos = transformComponent.getPosition().clone();
-        fromPos.y += modelComponent.getModel().getEyeHeight(playerEntity, commandBuffer);
-        Vector3d lookDir = headRotation.getDirection();
-        Vector3d toPos = fromPos.clone().add(lookDir.scale((double)distance));
+        Vector3d fromPosition = transformComponent.getPosition().clone();
+        fromPosition.y += modelComponent.getModel().getEyeHeight(playerEntity, commandBuffer);
+        Vector3d lookDirection = headRotation.getDirection();
+        Vector3d toPosition = fromPosition.clone().add(lookDirection.scale((double)distance));
 
         AtomicBoolean linked = new AtomicBoolean(false);
-        BlockIterator.iterateFromTo(fromPos, toPos, (x, y, z, px, py, pz, qx, qy, qz) -> {
+        BlockIterator.iterateFromTo(fromPosition, toPosition, (x, y, z, px, py, pz, qx, qy, qz) -> {
             int blockId = world.getBlock(x, y, z);
             BlockType blockType = BlockType.getAssetMap().getAsset(blockId);
 
@@ -116,12 +117,13 @@ public class LinkInteraction extends SimpleInstantInteraction {
 
                 for (int tagIndex : blockTags) {
                     if (Arrays.binarySearch(allowedTagIndices, tagIndex) >= 0) {
+                        var sourcePosition = heldItem.getFromMetadataOrNull("source_position", Vector3i.CODEC);
                         Vector3i targetPosition = new Vector3i(x, y, z);
-                        LinkResult result = canLink(heldItem, targetPosition);
+                        LinkResult result = canLink(heldItem.getDurability(), sourcePosition, targetPosition);
 
                         switch (result) {
                             case START:
-                                ItemStack startItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, targetPosition);
+                                ItemStack startItem = heldItem.withMetadata("source_position", Vector3i.CODEC, targetPosition);
                                 if (updateHeldItem(context, heldContainer, startItem)) {
                                     playerRef.sendMessage(Message.translation("server.message.counterweight.link_start"));
                                     linked.set(true);
@@ -129,9 +131,11 @@ public class LinkInteraction extends SimpleInstantInteraction {
                                 break;
 
                             case COMPLETE:
-                                ItemStack linkedItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, null).withDurability(heldItem.getDurability() - durabilityCost);
+                                ItemStack linkedItem = heldItem.withMetadata("source_position", Vector3i.CODEC, null).withDurability(heldItem.getDurability() - durabilityCost);
                                 if (updateHeldItem(context, heldContainer, linkedItem)) {
                                     // TODO: linking logic - create rope entity/update components?
+
+                                    boolean spawned = RopeManager.trySpawnRopeBetweenBlocks(world, sourcePosition, targetPosition);
 
                                     playerRef.sendMessage(Message.translation("server.message.counterweight.link_complete"));
                                     linked.set(true);
@@ -145,7 +149,7 @@ public class LinkInteraction extends SimpleInstantInteraction {
 
                             case FAIL_ALIGNMENT:
                             case FAIL_DURABILITY:
-                                ItemStack clearedItem = heldItem.withMetadata("source_pos", Vector3i.CODEC, null);
+                                ItemStack clearedItem = heldItem.withMetadata("source_position", Vector3i.CODEC, null);
                                 if (updateHeldItem(context, heldContainer, clearedItem)) {
                                     String failType = (result == LinkResult.FAIL_ALIGNMENT) ? "link_fail_alignment" : "link_fail_durability";
                                     playerRef.sendMessage(Message.translation("server.message.counterweight." + failType));
@@ -165,13 +169,11 @@ public class LinkInteraction extends SimpleInstantInteraction {
         else state.state = InteractionState.Finished;
     }
 
-    private LinkResult canLink(ItemStack heldItem, Vector3i pos) {
-        var sourcePos = heldItem.getFromMetadataOrNull("source_pos", Vector3i.CODEC);
-
-        if (sourcePos == null) return LinkResult.START;
-        if (sourcePos.equals(pos)) return LinkResult.IGNORED;
-        if (!checkInline(sourcePos, pos)) return LinkResult.FAIL_ALIGNMENT;
-        if (heldItem.getDurability() < durabilityCost) return LinkResult.FAIL_DURABILITY;
+    private LinkResult canLink(double durability, Vector3i sourcePosition, Vector3i targetPosition) {
+        if (sourcePosition == null) return LinkResult.START;
+        if (sourcePosition.equals(targetPosition)) return LinkResult.IGNORED;
+        if (!checkInline(sourcePosition, targetPosition)) return LinkResult.FAIL_ALIGNMENT;
+        if (durability < durabilityCost) return LinkResult.FAIL_DURABILITY;
         return LinkResult.COMPLETE;
     }
 
