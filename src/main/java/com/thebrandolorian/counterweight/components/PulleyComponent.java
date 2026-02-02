@@ -6,18 +6,19 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.server.core.codec.ProtocolCodecs;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class PulleyComponent implements Component<EntityStore> {
     public static final BuilderCodec<PulleyComponent> CODEC =
             BuilderCodec.builder(PulleyComponent.class, PulleyComponent::new)
 
-                    .append(new KeyedCodec<>("Axis", ProtocolCodecs.VECTOR3F),
+                    .append(new KeyedCodec<>("Axis", Vector3f.CODEC),
                             (c,v) -> c.axis.assign(v.x, v.y, v.z),
-                            c -> new com.hypixel.hytale.protocol.Vector3f(c.axis.x, c.axis.y, c.axis.z)).add()
+                            c -> new Vector3f(c.axis.x, c.axis.y, c.axis.z)).add()
 
                     .append(new KeyedCodec<>("Angle", Codec.FLOAT),
                             (c,v) -> c.angle = v,
@@ -33,18 +34,13 @@ public class PulleyComponent implements Component<EntityStore> {
         return CounterweightPlugin.get().getPulleyComponentType();
     }
 
-    // Data
     private Vector3f axis = new Vector3f(1,0,0);
     private float angle = 0f;
     private float radius = 1f;
+    private @Nullable UUID linkedRope = null;
 
-
-    // Getters
+    // Getters & Setters
     public Vector3f getAxis(){ return axis; }
-    public float getAngle(){ return angle; }
-    public float getRadius(){ return radius; }
-
-    // Setters
     public void setAxis(Vector3f axis) {
         float x = Math.abs(axis.x);
         float y = Math.abs(axis.y);
@@ -54,8 +50,15 @@ public class PulleyComponent implements Component<EntityStore> {
         else if (y >= x && y >= z) this.axis.assign(0,Math.signum(axis.y),0);
         else this.axis.assign(0,0,Math.signum(axis.z));
     }
+
+    public float getAngle(){ return angle; }
     public void setAngle(float angle) { this.angle = angle; }
+
+    public float getRadius(){ return radius; }
     public void setRadius(float radius) { this.radius = radius; }
+
+    public @Nullable UUID getLinkedRope() { return linkedRope; }
+    public void setLinkedRope(@Nullable UUID linkedRope) { this.linkedRope = linkedRope; }
 
     @Override
     public @Nullable Component<EntityStore> clone() {
