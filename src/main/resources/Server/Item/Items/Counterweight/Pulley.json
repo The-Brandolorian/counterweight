@@ -63,6 +63,12 @@
       "Type": [
         "Linkable"
       ]
+    },
+    "State": {
+      "Definitions": {
+        "Rotating": {},
+        "Idle": {}
+      }
     }
   },
   "PlayerAnimationsId": "Block",
