@@ -6,13 +6,11 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
-public class PulleyComponent implements Component<EntityStore> {
+public class PulleyComponent implements Component<ChunkStore> {
     public static final BuilderCodec<PulleyComponent> CODEC =
             BuilderCodec.builder(PulleyComponent.class, PulleyComponent::new)
 
@@ -30,14 +28,13 @@ public class PulleyComponent implements Component<EntityStore> {
 
                     .build();
 
-    public static ComponentType<EntityStore, PulleyComponent> getComponentType() {
+    public static ComponentType<ChunkStore, PulleyComponent> getComponentType() {
         return CounterweightPlugin.get().getPulleyComponentType();
     }
 
     private Vector3f axis = new Vector3f(1,0,0);
     private float angle = 0f;
     private float radius = 1f;
-    private @Nullable UUID linkedRope = null;
 
     // Getters & Setters
     public Vector3f getAxis(){ return axis; }
@@ -57,11 +54,8 @@ public class PulleyComponent implements Component<EntityStore> {
     public float getRadius(){ return radius; }
     public void setRadius(float radius) { this.radius = radius; }
 
-    public @Nullable UUID getLinkedRope() { return linkedRope; }
-    public void setLinkedRope(@Nullable UUID linkedRope) { this.linkedRope = linkedRope; }
-
     @Override
-    public @Nullable Component<EntityStore> clone() {
+    public @Nullable Component<ChunkStore> clone() {
         PulleyComponent c = new PulleyComponent();
         c.axis = new Vector3f(axis.x, axis.y, axis.z);
         c.angle = angle;
