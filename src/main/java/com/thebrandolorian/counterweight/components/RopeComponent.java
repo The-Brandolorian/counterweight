@@ -8,6 +8,7 @@ import com.hypixel.hytale.codec.codecs.array.ArrayCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 
@@ -63,35 +64,46 @@ public class RopeComponent implements Component<EntityStore> {
         private static final Codec<AnchorType> ANCHOR_TYPE_CODEC = new EnumCodec<>(AnchorType.class);
 
         public static final BuilderCodec<AnchorNode> CODEC = BuilderCodec.builder(AnchorNode.class, AnchorNode::new)
-                .append(new KeyedCodec<>("pos", Vector3d.CODEC), (n, v) -> n.position = v, n -> n.position).add()
+                .append(new KeyedCodec<>("anchorPosition", Vector3d.CODEC), (n, v) -> n.anchorPosition = v, n -> n.anchorPosition).add()
+                .append(new KeyedCodec<>("blockPosition", Vector3i.CODEC), (n, v) -> n.blockPosition = v, n -> n.blockPosition).add()
                 .afterDecode((node, extraInfo) -> {
                     if (!node.isValid()) {
-                        if (node.position == null) node.position = Vector3d.ZERO;
-                        CounterweightPlugin.get().getLogger().atSevere().log("RopeNode " + node.toString() + " does not have a valid anchor");
+                        if (node.blockPosition == null && node.anchorPosition != null) {
+                            node.blockPosition = new Vector3i((int)node.anchorPosition.getX(), (int)node.anchorPosition.getY(), (int)node.anchorPosition.getZ());
+                        }
+
+                        if (node.anchorPosition == null) {
+                            node.anchorPosition = Vector3d.ZERO;
+                            CounterweightPlugin.get().getLogger().atSevere().log("RopeNode " + node.toString() + " does not have a valid anchor");
+                        }
                     }
                 })
                 .build();
 
-        @Nullable private Vector3d position;
+        private Vector3d anchorPosition = Vector3d.ZERO;
+        private Vector3i blockPosition = Vector3i.ZERO;
 
         public AnchorNode() {}
 
         public boolean isValid() {
-            return position != null;
+            return anchorPosition != null;
         }
 
-        public static AnchorNode block(Vector3d pos) {
+        public static AnchorNode block(@Nonnull Vector3d anchorPosition, @Nonnull Vector3i blockPosition) {
             AnchorNode node = new AnchorNode();
-            node.position = pos;
+            node.anchorPosition = anchorPosition;
+            node.blockPosition = blockPosition;
             return node;
         }
 
-        @Nullable public Vector3d getPosition() { return position; }
+        @Nonnull public Vector3d getAnchorPosition() { return anchorPosition; }
+        @Nonnull public Vector3i getBlockPosition() { return blockPosition; }
 
         @Override
         public AnchorNode clone() {
             AnchorNode clone = new AnchorNode();
-            clone.position = this.position != null ? new Vector3d(this.position.getX(), this.position.getY(), this.position.getZ()) : null;
+            clone.anchorPosition = new Vector3d(anchorPosition.getX(), anchorPosition.getY(), anchorPosition.getZ());
+            clone.blockPosition = new Vector3i(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
             return clone;
         }
     }

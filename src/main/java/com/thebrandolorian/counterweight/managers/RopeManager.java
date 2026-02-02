@@ -50,8 +50,8 @@ public class RopeManager {
             Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
 
             RopeComponent rope = new RopeComponent();
-            rope.addNode(RopeComponent.AnchorNode.block(start));
-            rope.addNode(RopeComponent.AnchorNode.block(end));
+            rope.addNode(RopeComponent.AnchorNode.block(start, position1));
+            rope.addNode(RopeComponent.AnchorNode.block(end, position2));
             rope.setTotalLength(distance);
             rope.setDeployedLength(distance);
 
