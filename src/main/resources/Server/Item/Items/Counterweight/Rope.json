@@ -1,0 +1,48 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.Deco_Rope.name"
+  },
+  "Icon": "Icons/ItemsGenerated/Deco_Rope.png",
+  "Categories": [
+    "Blocks.Deco"
+  ],
+  "BlockType": {
+    "Material": "Solid",
+    "DrawType": "Model",
+    "Opacity": "Transparent",
+    "CustomModel": "Blocks/Farming/Rope_Vertical.blockymodel",
+    "CustomModelTexture": [
+      {
+        "Weight": 1,
+        "Texture": "Blocks/Farming/Rope_Diagonal_Texture.png"
+      }
+    ],
+    "HitboxType": "Rope",
+    "Flags": {},
+    "Gathering": {
+      "Soft": {}
+    },
+    "BlockParticleSetId": "Dust",
+    "BlockSoundSetId": "Rope",
+    "MovementSettings": {
+      "IsClimbable": true
+    },
+    "CubeShadingMode": "Flat",
+    "BlockEntity": {
+      "Components": {
+        "RopeSegmentComponent": {}
+      }
+    },
+    "SupportsRequiredFor": "Any",
+    "FlipType": "Symmetric",
+    "VariantRotation": "Pipe",
+    "IgnoreSupportWhenPlaced": true
+  },
+  "PlayerAnimationsId": "Block",
+  "Tags": {
+    "Type": [
+      "Deco"
+    ]
+  },
+  "ItemSoundSetId": "ISS_Blocks_Wood"
+}

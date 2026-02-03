@@ -138,6 +138,7 @@ public class LinkInteraction extends SimpleInstantInteraction {
                                     boolean spawned = RopeManager.trySpawnRopeBetweenBlocks(world, sourcePosition, targetPosition);
 
                                     playerRef.sendMessage(Message.translation("server.message.counterweight.link_complete"));
+                                    playerRef.sendMessage(Message.translation("Spawned: " + spawned));
                                     linked.set(true);
                                 }
                                 break;

@@ -29,11 +29,9 @@
     ]
   },
   "BlockType": {
-    "Material": "Solid",
-    "DrawType": "Model",
+    "DrawType": "Cube",
     "ParticleColor": "#4b4b4b",
-    "Opacity": "Transparent",
-    "CustomModel": "Blocks/Tinkering/Iron_Chain_Small.blockymodel",
+    "Opacity": "Solid",
     "CustomModelTexture": [
       {
         "Weight": 1,
@@ -41,7 +39,6 @@
       }
     ],
     "CustomModelScale": 1,
-    "HitboxType": "Beam_Thin",
     "Gathering": {
       "Breaking": {
         "GatherType": "Rocks"
@@ -69,7 +66,20 @@
         "Rotating": {},
         "Idle": {}
       }
-    }
+    },
+    "BlockEntity": {
+      "Components": {
+        "AnchorComponent": {},
+        "PulleyComponent": {}
+      }
+    },
+    "Textures": [
+      {
+        "All": "BlockTextures/Wood_Hardwood_Planks.png"
+      }
+    ],
+    "MaxSupportDistance": 5,
+    "Material": "Solid"
   },
   "PlayerAnimationsId": "Block",
   "IconProperties": {
@@ -84,7 +94,7 @@
       -14.1
     ]
   },
-  "Icon": "Icons/ItemsGenerated/Deco_Iron_Chain_Small.png",
+  "Icon": "Icons/ItemsGenerated/Pulley.png",
   "Tags": {
     "Type": [
       "Link_Source"
