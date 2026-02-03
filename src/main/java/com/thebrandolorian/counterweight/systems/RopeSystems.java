@@ -9,7 +9,6 @@ import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.modules.interaction.BlockHarvestUtils;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.chunk.WorldChunk;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 import com.thebrandolorian.counterweight.components.AnchorComponent;
@@ -52,7 +51,7 @@ public class RopeSystems {
             }
             anchorsToRemove.forEach(anchorComponent::removeAnchor);
 
-            // TODO: rope functionality
+            // TODO: rope functionality e.g moving etc
         }
 
         @Override
@@ -72,9 +71,17 @@ public class RopeSystems {
         public void onComponentRemoved(@Nonnull Ref<ChunkStore> ref, @Nonnull RopeComponent ropeComponent, @Nonnull Store<ChunkStore> store, @Nonnull CommandBuffer<ChunkStore> commandBuffer) {
             World world = store.getExternalData().getWorld();
             world.execute(() -> {
-                List<Vector3i> blockPositions = new ArrayList<>(ropeComponent.getSegmentPositions());
-                clearBlocks(world, blockPositions);
-                CounterweightPlugin.get().getLogger().atInfo().log("Rope collapsed. Clearing " + blockPositions.size() + " segments.");
+                List<Vector3i> allSegments = new ArrayList<>();
+                for (RopeComponent.RopePath path : ropeComponent.getPaths()) {
+                    if (path.getSegments() != null) {
+                        allSegments.addAll(path.getSegments());
+                    }
+                }
+
+                if (!allSegments.isEmpty()) {
+                    clearBlocks(world, allSegments);
+                    CounterweightPlugin.get().getLogger().atInfo().log("Rope source removed. Clearing " + allSegments.size() + " segments.");
+                }
             });
         }
 
@@ -98,29 +105,37 @@ public class RopeSystems {
             AnchorComponent anchorComponent = store.getComponent(ref, AnchorComponent.getComponentType());
             if (anchorComponent == null) return;
 
+            World world = store.getExternalData().getWorld();
             RopeComponent ropeComponent = store.getComponent(ref, RopeComponent.getComponentType());
             if (ropeComponent != null) {
-                World world = store.getExternalData().getWorld();
                 world.execute(() -> {
-                    List<Vector3i> blockPositions = new ArrayList<>(ropeComponent.getSegmentPositions());
-                    clearBlocks(world, blockPositions);
-                    CounterweightPlugin.get().getLogger().atInfo().log("Anchor broken. Clearing " + ropeComponent.getSegmentPositions().size() + " segments.");
+                    List<Vector3i> allMySegments = new ArrayList<>();
+                    for (RopeComponent.RopePath path : ropeComponent.getPaths()) allMySegments.addAll(path.getSegments());
+                    clearBlocks(world, allMySegments);
+                    CounterweightPlugin.get().getLogger().atInfo().log("Anchor broken. Clearing source ropes: " + allMySegments.size() + " segments.");
                 });
             }
 
             Set<Vector3i> linkedPositions = anchorComponent.getLinkedAnchorPositions();
-            if (linkedPositions != null && !linkedPositions.isEmpty()) {
-                Vector3i brokenAnchorPosition = anchorComponent.getPosition();
-                if (brokenAnchorPosition == null) return;
+            Vector3i brokenAnchorPosition = anchorComponent.getPosition();
+            if (linkedPositions != null && brokenAnchorPosition != null) {
+                for (Vector3i partnerPos : linkedPositions) {
+                    Ref<ChunkStore> partnerRef = getBlockRefFromPosition(world, partnerPos);
+                    if (partnerRef == null || !partnerRef.isValid()) continue;
 
-                for (Vector3i linkedPosition : linkedPositions) {
-                    Ref<ChunkStore> linkedAnchorRef = getBlockRefFromPosition(store.getExternalData().getWorld(), linkedPosition);
-                    if (linkedAnchorRef == null || !linkedAnchorRef.isValid()) continue;
+                    RopeComponent partnerRope = store.getComponent(partnerRef, RopeComponent.getComponentType());
+                    if (partnerRope != null) {
+                        partnerRope.getPaths().removeIf(path -> {
+                            if (path.getTarget().equals(brokenAnchorPosition)) {
+                                world.execute(() -> clearBlocks(world, new ArrayList<>(path.getSegments())));
+                                return true;
+                            }
+                            return false;
+                        });
 
-                    RopeComponent linkedRopeComponent = store.getComponent(linkedAnchorRef, RopeComponent.getComponentType());
-                    if (linkedRopeComponent != null && linkedRopeComponent.getAnchorNodes().stream().anyMatch(node -> node.getAnchorPosition().equals(brokenAnchorPosition))) {
-                        commandBuffer.removeComponent(linkedAnchorRef, RopeComponent.getComponentType());
-                        CounterweightPlugin.get().getLogger().atInfo().log("Partner Anchor broken. Signaling owner to clear rope.");
+                        if (partnerRope.getPaths().isEmpty()) {
+                            commandBuffer.removeComponent(partnerRef, RopeComponent.getComponentType());
+                        }
                     }
                 }
             }
@@ -143,17 +158,25 @@ public class RopeSystems {
             RopeSegmentComponent ropeSegmentComponent = store.getComponent(ref, RopeSegmentComponent.getComponentType());
             if (ropeSegmentComponent == null) return;
 
-            Vector3i anchorPosition = ropeSegmentComponent.getStartAnchor();
-            if (anchorPosition == null) return;
+            Vector3i startAnchorPosition = ropeSegmentComponent.getStartAnchor();
+            Vector3i endAnchorPosition = ropeSegmentComponent.getEndAnchor();
+            if (startAnchorPosition == null || endAnchorPosition == null) return;
 
             World world = store.getExternalData().getWorld();
-            Ref<ChunkStore> anchorRef = getBlockRefFromPosition(world, anchorPosition);
+            Ref<ChunkStore> anchorRef = getBlockRefFromPosition(world, startAnchorPosition);
 
             if (anchorRef != null && anchorRef.isValid()) {
                 RopeComponent ropeComponent = store.getComponent(anchorRef, RopeComponent.getComponentType());
                 if (ropeComponent != null) {
-                    commandBuffer.removeComponent(anchorRef, RopeComponent.getComponentType());
-                    CounterweightPlugin.get().getLogger().atInfo().log("Rope segment broken. Triggered full collapse.");
+                    ropeComponent.getPaths().removeIf(path -> {
+                        if (path.getTarget().equals(endAnchorPosition)) {
+                            world.execute(() -> clearBlocks(world, new ArrayList<>(path.getSegments())));
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    if (ropeComponent.getPaths().isEmpty()) commandBuffer.removeComponent(anchorRef, RopeComponent.getComponentType());
                 }
             }
         }
@@ -163,6 +186,8 @@ public class RopeSystems {
     }
 
     private static void clearBlocks(World world, List<Vector3i> blockPositions) {
+        if (blockPositions == null || blockPositions.isEmpty()) return;
+
         for (Vector3i position : blockPositions) {
             long chunkIndex = ChunkUtil.indexChunkFromBlock(position.x, position.z);
             Ref<ChunkStore> segmentChunkRef = world.getChunkStore().getStore().getExternalData().getChunkReference(chunkIndex);

@@ -1,9 +1,7 @@
 package com.thebrandolorian.counterweight.components;
 
-import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
-import com.hypixel.hytale.codec.codecs.EnumCodec;
 import com.hypixel.hytale.codec.codecs.array.ArrayCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.component.ComponentType;
@@ -11,75 +9,63 @@ import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class RopeComponent implements Component<ChunkStore> {
     public static final BuilderCodec<RopeComponent> CODEC =
             BuilderCodec.builder(RopeComponent.class, RopeComponent::new)
-                    .append(new KeyedCodec<>("Nodes", new ArrayCodec<>(AnchorNode.CODEC, AnchorNode[]::new)),
-                            (c, v) -> c.anchorNodes = new ArrayList<>(Arrays.asList(v)),
-                            c -> c.anchorNodes.toArray(new AnchorNode[0])).add()
-
-                    .append(new KeyedCodec<>("Segments", new ArrayCodec<>(Vector3i.CODEC, Vector3i[]::new)),
-                            (c, v) -> c.segmentPositions = new ArrayList<>(Arrays.asList(v)),
-                            c -> c.segmentPositions.toArray(new Vector3i[0])).add()
-
+                    .append(new KeyedCodec<>("Paths", new ArrayCodec<>(RopePath.CODEC, RopePath[]::new)),
+                            (c, v) -> c.paths = new ArrayList<>(Arrays.asList(v)),
+                            c -> c.paths.toArray(new RopePath[0])).add()
                     .build();
 
     public static ComponentType<ChunkStore, RopeComponent> getComponentType() { return CounterweightPlugin.get().getRopeComponentType(); }
 
+    private List<RopePath> paths = new ArrayList<>();
+
     public RopeComponent() {}
 
-    private List<AnchorNode> anchorNodes = new ArrayList<>();
-    private List<Vector3i> segmentPositions = new ArrayList<>();
+    public void addPath(Vector3i targetAnchor, Set<Vector3i> segments) {
+        this.paths.removeIf(p -> p.getTarget().equals(targetAnchor));
+        this.paths.add(new RopePath(targetAnchor, segments));
+    }
 
-    public void addNode(AnchorNode node) { this.anchorNodes.add(node); }
-    public void addSegment(Vector3i segment) { this.segmentPositions.add(segment); }
-
-    // Getters & Setters
-    public List<AnchorNode> getAnchorNodes() { return anchorNodes; }
-    public List<Vector3i> getSegmentPositions() { return segmentPositions; }
+    public List<RopePath> getPaths() { return paths; }
 
     @Override
     public @Nullable RopeComponent clone() {
-        RopeComponent rope = new RopeComponent();
-        for (AnchorNode node : this.anchorNodes) rope.addNode(node.clone());
-        for (Vector3i segment : this.segmentPositions) rope.addSegment(new Vector3i(segment.x, segment.y, segment.z));
-        return rope;
+        RopeComponent clone = new RopeComponent();
+        for (RopePath path : this.paths) clone.paths.add(path.clone());
+        return clone;
     }
 
-    public static class AnchorNode {
-        public enum AnchorType { BLOCK }
-        private static final Codec<AnchorType> ANCHOR_TYPE_CODEC = new EnumCodec<>(AnchorType.class);
-
-        public static final BuilderCodec<AnchorNode> CODEC = BuilderCodec.builder(AnchorNode.class, AnchorNode::new)
-                .append(new KeyedCodec<>("AnchorPosition", Vector3i.CODEC),
-                        (n, v) -> n.anchorPosition = v,
-                        n -> n.anchorPosition).add()
-
+    public static class RopePath {
+        public static final BuilderCodec<RopePath> CODEC = BuilderCodec.builder(RopePath.class, RopePath::new)
+                .append(new KeyedCodec<>("Target", Vector3i.CODEC),
+                        (p, v) -> p.target = v,
+                        p -> p.target).add()
+                .append(new KeyedCodec<>("Segments", new ArrayCodec<>(Vector3i.CODEC, Vector3i[]::new)),
+                        (p, v) -> p.segments = new HashSet<>(Arrays.asList(v)),
+                        p -> p.segments.toArray(new Vector3i[0])).add()
                 .build();
 
-        private Vector3i anchorPosition = null;
+        private Vector3i target;
+        private Set<Vector3i> segments = new HashSet<>();
 
-        public AnchorNode() {}
+        public RopePath() {}
 
-        public static AnchorNode of(@Nonnull Vector3i anchorPosition) {
-            AnchorNode node = new AnchorNode();
-            node.anchorPosition = anchorPosition;
-            return node;
+        public RopePath(Vector3i target, Set<Vector3i> segments) {
+            this.target = target;
+            this.segments = segments;
         }
 
-        @Nonnull public Vector3i getAnchorPosition() { return anchorPosition; }
+        public Vector3i getTarget() { return target; }
+        public Set<Vector3i> getSegments() { return segments; }
 
-        @Override
-        public AnchorNode clone() {
-            AnchorNode clone = new AnchorNode();
-            if (this.anchorPosition != null) clone.anchorPosition = new Vector3i(this.anchorPosition);
-            return clone;
+        public RopePath clone() {
+            Vector3i targetClone = this.target != null ? new Vector3i(this.target) : null;
+            return new RopePath(targetClone, new HashSet<>(this.segments));
         }
     }
 }

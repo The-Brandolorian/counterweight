@@ -15,6 +15,8 @@ import com.thebrandolorian.counterweight.components.RopeComponent;
 import com.thebrandolorian.counterweight.components.RopeSegmentComponent;
 
 import javax.annotation.Nonnull;
+import java.util.HashSet;
+import java.util.Set;
 
 public class RopeManager {
 
@@ -35,8 +37,6 @@ public class RopeManager {
         if (startAnchorComponent == null || endAnchorComponent == null) return false;
 
         RopeComponent ropeComponent = chunkStore.ensureAndGetComponent(startBlockRef, RopeComponent.getComponentType());
-        ropeComponent.addNode(RopeComponent.AnchorNode.of(start));
-        ropeComponent.addNode(RopeComponent.AnchorNode.of(end));
 
         startAnchorComponent.setPosition(start);
         startAnchorComponent.addAnchor(end);
@@ -48,38 +48,40 @@ public class RopeManager {
         int dy = end.getY() - start.getY();
         int dz = end.getZ() - start.getZ();
 
-        int min, max;
-        if (dx != 0) {
-            min = Math.min(start.getX(), end.getX());
-            max = Math.max(start.getX(), end.getX());
-            world.execute(() -> {
+        world.execute(() -> {
+            Set<Vector3i> segmentsForThisPath = new HashSet<>();
+            int min, max;
+
+            if (dx != 0) {
+                min = Math.min(start.getX(), end.getX());
+                max = Math.max(start.getX(), end.getX());
                 for (int x = min + 1; x < max; x++) {
+                    Vector3i pos = new Vector3i(x, start.getY(), start.getZ());
                     RotationTuple rotation = RotationTuple.of(Rotation.None, Rotation.None, Rotation.Ninety);
-                    if (!trySpawnRopeSegment(world, chunkStore, ropeComponent, new Vector3i(x, start.getY(), start.getZ()), start, end, rotation)) return;
+                    if (trySpawnRopeSegment(world, chunkStore, segmentsForThisPath, pos, start, end, rotation)) segmentsForThisPath.add(pos);
                 }
-                CounterweightPlugin.get().getLogger().atInfo().log("Rope segments added for anchor at " + start);
-            });
-        } else if (dz != 0) {
-            min = Math.min(start.getZ(), end.getZ());
-            max = Math.max(start.getZ(), end.getZ());
-            world.execute(() -> {
+            } else if (dz != 0) {
+                min = Math.min(start.getZ(), end.getZ());
+                max = Math.max(start.getZ(), end.getZ());
                 for (int z = min + 1; z < max; z++) {
+                    Vector3i pos = new Vector3i(start.getX(), start.getY(), z);
                     RotationTuple rotation = RotationTuple.of(Rotation.Ninety, Rotation.None, Rotation.Ninety);
-                    if (!trySpawnRopeSegment(world, chunkStore, ropeComponent, new Vector3i(start.getX(), start.getY(), z), start, end, rotation)) return;
+                    if (trySpawnRopeSegment(world, chunkStore, segmentsForThisPath, pos, start, end, rotation)) segmentsForThisPath.add(pos);
                 }
-                CounterweightPlugin.get().getLogger().atInfo().log("Rope segments added for anchor at " + start);
-            });
-        } else if (dy != 0) {
-            min = Math.min(start.getY(), end.getY());
-            max = Math.max(start.getY(), end.getY());
-            world.execute(() -> {
+            } else if (dy != 0) {
+                min = Math.min(start.getY(), end.getY());
+                max = Math.max(start.getY(), end.getY());
                 for (int y = min + 1; y < max; y++) {
+                    Vector3i pos = new Vector3i(start.getX(), y, start.getZ());
                     RotationTuple rotation = RotationTuple.NONE;
-                    if (!trySpawnRopeSegment(world, chunkStore, ropeComponent, new Vector3i(start.getX(), y, start.getZ()), start, end, rotation)) return;
+                    if (trySpawnRopeSegment(world, chunkStore, segmentsForThisPath, pos, start, end, rotation)) segmentsForThisPath.add(pos);
                 }
-                CounterweightPlugin.get().getLogger().atInfo().log("Rope segments added for anchor at " + start);
-            });
-        }
+            }
+
+            if (!segmentsForThisPath.isEmpty()) ropeComponent.addPath(end, segmentsForThisPath);
+            else ropeComponent.addPath(end, new HashSet<>());
+            logger.atInfo().log("New rope path registered from " + start + " to " + end + " with " + segmentsForThisPath.size() + " segments.");
+        });
 
         return true;
     }
@@ -96,19 +98,20 @@ public class RopeManager {
         return blockRef;
     }
 
-    private static boolean trySpawnRopeSegment(World world, Store<ChunkStore> store, RopeComponent ropeComponent, Vector3i position, Vector3i start, Vector3i end, RotationTuple rotation) {
+    private static boolean trySpawnRopeSegment(World world, Store<ChunkStore> store, Set<Vector3i> currentPath, Vector3i position, Vector3i start, Vector3i end, RotationTuple rotation) {
         long chunkIndex = ChunkUtil.indexChunkFromBlock(position.x, position.z);
         WorldChunk worldChunk = world.getChunkIfLoaded(chunkIndex);
 
-        if (worldChunk != null) worldChunk.placeBlock(position.getX(), position.getY(), position.getZ(), "Rope", rotation, 10, false);
+        if (worldChunk != null) {
+            worldChunk.placeBlock(position.getX(), position.getY(), position.getZ(), "Rope", rotation, 10, false);
 
-        Ref<ChunkStore> spawnedBlockRef = getBlockRefFromPosition(world, position);
-        if (spawnedBlockRef == null) return false;
-
-        ropeComponent.addSegment(position);
-        RopeSegmentComponent segment = store.ensureAndGetComponent(spawnedBlockRef, RopeSegmentComponent.getComponentType());
-        segment.setAnchors(start, end);
-
-        return true;
+            Ref<ChunkStore> spawnedBlockRef = getBlockRefFromPosition(world, position);
+            if (spawnedBlockRef != null) {
+                RopeSegmentComponent segment = store.ensureAndGetComponent(spawnedBlockRef, RopeSegmentComponent.getComponentType());
+                segment.setAnchors(start, end);
+                return true;
+            }
+        }
+        return false;
     }
 }
