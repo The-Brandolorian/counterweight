@@ -20,14 +20,6 @@ import java.util.List;
 public class RopeComponent implements Component<ChunkStore> {
     public static final BuilderCodec<RopeComponent> CODEC =
             BuilderCodec.builder(RopeComponent.class, RopeComponent::new)
-                    .append(new KeyedCodec<>("TotalLength", Codec.FLOAT),
-                            (c, v) -> c.totalLength = v,
-                            c -> c.totalLength).add()
-
-                    .append(new KeyedCodec<>("DeployedLength", Codec.FLOAT),
-                            (c, v) -> c.deployedLength = v,
-                            c -> c.deployedLength).add()
-
                     .append(new KeyedCodec<>("Nodes", new ArrayCodec<>(AnchorNode.CODEC, AnchorNode[]::new)),
                             (c, v) -> c.anchorNodes = new ArrayList<>(Arrays.asList(v)),
                             c -> c.anchorNodes.toArray(new AnchorNode[0])).add()
@@ -42,30 +34,19 @@ public class RopeComponent implements Component<ChunkStore> {
 
     public RopeComponent() {}
 
-    private float totalLength = 1f;
-    private float deployedLength = 0f;
     private List<AnchorNode> anchorNodes = new ArrayList<>();
     private List<Vector3i> segmentPositions = new ArrayList<>();
 
     public void addNode(AnchorNode node) { this.anchorNodes.add(node); }
     public void addSegment(Vector3i segment) { this.segmentPositions.add(segment); }
-    public float getRemainingLength() { return totalLength - deployedLength; }
 
     // Getters & Setters
-    public float getTotalLength() { return totalLength; }
-    public void setTotalLength(float totalLength) { this.totalLength = totalLength; }
-
-    public float getDeployedLength() { return deployedLength; }
-    public void setDeployedLength(float len) { this.deployedLength = Math.max(0f, Math.min(totalLength, len)); }
-
     public List<AnchorNode> getAnchorNodes() { return anchorNodes; }
     public List<Vector3i> getSegmentPositions() { return segmentPositions; }
 
     @Override
     public @Nullable RopeComponent clone() {
         RopeComponent rope = new RopeComponent();
-        rope.totalLength = this.totalLength;
-        rope.deployedLength = this.deployedLength;
         for (AnchorNode node : this.anchorNodes) rope.addNode(node.clone());
         for (Vector3i segment : this.segmentPositions) rope.addSegment(new Vector3i(segment.x, segment.y, segment.z));
         return rope;
@@ -85,8 +66,6 @@ public class RopeComponent implements Component<ChunkStore> {
         private Vector3i anchorPosition = null;
 
         public AnchorNode() {}
-
-        public boolean isValid() { return anchorPosition != null; }
 
         public static AnchorNode of(@Nonnull Vector3i anchorPosition) {
             AnchorNode node = new AnchorNode();
