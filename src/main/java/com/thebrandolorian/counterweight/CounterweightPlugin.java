@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.components.*;
 import com.thebrandolorian.counterweight.interactions.LinkInteraction;
 import com.thebrandolorian.counterweight.systems.RopeSystems;
+import com.thebrandolorian.counterweight.utils.DebugUtils;
+import lombok.Getter;
 
 import javax.annotation.Nonnull;
 
@@ -16,20 +18,14 @@ public class CounterweightPlugin extends JavaPlugin {
     private static CounterweightPlugin INSTANCE;
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
 
-    private ComponentType<ChunkStore, AnchorComponent> anchorComponentType;
-    private ComponentType<ChunkStore, RopeComponent> ropeComponentType;
-    private ComponentType<ChunkStore, RopeSegmentComponent> ropeSegmentType;
-    private ComponentType<ChunkStore, PulleyComponent> pulleyComponentType;
-    private ComponentType<ChunkStore, SpoolComponent> spoolComponentType;
+    private @Getter ComponentType<ChunkStore, AnchorComponent> anchorComponentType;
+    private @Getter ComponentType<ChunkStore, RopeComponent> ropeComponentType;
+    private @Getter ComponentType<ChunkStore, RopeSegmentComponent> ropeSegmentComponentType;
+    private @Getter ComponentType<ChunkStore, PulleyComponent> pulleyComponentType;
+    private @Getter ComponentType<ChunkStore, SpoolComponent> spoolComponentType;
 
-    public static CounterweightPlugin get() { return INSTANCE; }
+    public static CounterweightPlugin get() { return CounterweightPlugin.INSTANCE; }
     public CounterweightPlugin(@Nonnull JavaPluginInit init) { super(init); }
-
-    public ComponentType<ChunkStore, AnchorComponent> getAnchorComponentType() { return this.anchorComponentType; }
-    public ComponentType<ChunkStore, RopeComponent> getRopeComponentType() { return this.ropeComponentType; }
-    public ComponentType<ChunkStore, RopeSegmentComponent> getRopeSegmentComponentType() { return this.ropeSegmentType; }
-    public ComponentType<ChunkStore, PulleyComponent> getPulleyComponentType() { return this.pulleyComponentType; }
-    public ComponentType<ChunkStore, SpoolComponent> getSpoolComponentType() { return this.spoolComponentType; }
 
     @Override
     protected void setup() {
@@ -38,8 +34,8 @@ public class CounterweightPlugin extends JavaPlugin {
         registerComponents();
         registerCommands();
         registerEvents();
-
-        LOGGER.atInfo().log("Successfully loaded %s v%s", this.getName(), this.getManifest().getVersion().toString());
+		
+		DebugUtils.logInfo("Successfully loaded %s v%s", this.getName(), this.getManifest().getVersion().toString());
     }
 
     @Override
@@ -52,7 +48,7 @@ public class CounterweightPlugin extends JavaPlugin {
     private void registerComponents() {
         anchorComponentType = getChunkStoreRegistry().registerComponent(AnchorComponent.class, "AnchorComponent", AnchorComponent.CODEC);
         ropeComponentType = getChunkStoreRegistry().registerComponent(RopeComponent.class, "RopeComponent", RopeComponent.CODEC);
-        ropeSegmentType = getChunkStoreRegistry().registerComponent(RopeSegmentComponent.class, "RopeSegmentComponent", RopeSegmentComponent.CODEC);
+        ropeSegmentComponentType = getChunkStoreRegistry().registerComponent(RopeSegmentComponent.class, "RopeSegmentComponent", RopeSegmentComponent.CODEC);
         pulleyComponentType = getChunkStoreRegistry().registerComponent(PulleyComponent.class, "PulleyComponent", PulleyComponent.CODEC);
         spoolComponentType = getChunkStoreRegistry().registerComponent(SpoolComponent.class, "SpoolComponent", SpoolComponent.CODEC);
     }

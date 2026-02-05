@@ -8,8 +8,8 @@ import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
+import lombok.Getter;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class RopeComponent implements Component<ChunkStore> {
@@ -21,20 +21,20 @@ public class RopeComponent implements Component<ChunkStore> {
                     .build();
 
     public static ComponentType<ChunkStore, RopeComponent> getComponentType() { return CounterweightPlugin.get().getRopeComponentType(); }
-
-    private List<RopePath> paths = new ArrayList<>();
-
+    
     public RopeComponent() {}
+    
+    @Getter private List<RopePath> paths = new ArrayList<>();
 
     public void addPath(Vector3i targetAnchor, Set<Vector3i> segments) {
-        this.paths.removeIf(p -> p.getTarget().equals(targetAnchor));
-        this.paths.add(new RopePath(targetAnchor, segments));
+        for (RopePath path : paths) {
+            if (path.getTarget().equals(targetAnchor)) return;
+        }
+        paths.add(new RopePath(targetAnchor, segments));
     }
 
-    public List<RopePath> getPaths() { return paths; }
-
     @Override
-    public @Nullable RopeComponent clone() {
+    public RopeComponent clone() {
         RopeComponent clone = new RopeComponent();
         for (RopePath path : this.paths) clone.paths.add(path.clone());
         return clone;
@@ -49,9 +49,9 @@ public class RopeComponent implements Component<ChunkStore> {
                         (p, v) -> p.segments = new HashSet<>(Arrays.asList(v)),
                         p -> p.segments.toArray(new Vector3i[0])).add()
                 .build();
-
-        private Vector3i target;
-        private Set<Vector3i> segments = new HashSet<>();
+        
+        @Getter private Vector3i target;
+        @Getter private Set<Vector3i> segments = new HashSet<>();
 
         public RopePath() {}
 
@@ -59,10 +59,8 @@ public class RopeComponent implements Component<ChunkStore> {
             this.target = target;
             this.segments = segments;
         }
-
-        public Vector3i getTarget() { return target; }
-        public Set<Vector3i> getSegments() { return segments; }
-
+        
+        @Override
         public RopePath clone() {
             Vector3i targetClone = this.target != null ? new Vector3i(this.target) : null;
             return new RopePath(targetClone, new HashSet<>(this.segments));

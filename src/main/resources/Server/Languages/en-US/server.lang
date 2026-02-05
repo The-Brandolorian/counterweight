@@ -5,8 +5,12 @@ items.counterweight.Rope_Spool.description = A spool of rope for linking pulleys
 
 interactionHints.counterweight.Link = Press [{key}] to Link
 
-message.counterweight.link_start=Link started! Select a second pulley.
-message.counterweight.link_complete=Link successful!
-message.counterweight.link_error_same=Start and end point must not be the same!
-message.counterweight.link_fail_alignment=Link failed: Pulleys must be aligned on a straight axis!
-message.counterweight.link_fail_durability=Link failed: Not enough rope left to link blocks!
+message.counterweight.link_hint=Select an anchor to start linking.
+message.counterweight.link_cancel=Linking cancelled.
+message.counterweight.link_start=Linking started! Select a second anchor.
+message.counterweight.link_complete=Linking successful.
+message.counterweight.link_fail_same=Start and end points must not be the same, select a different anchor.
+message.counterweight.link_fail_alignment=Linking failed, anchors must be aligned.
+message.counterweight.link_fail_durability=Linking failed, not enough rope left to link anchors.
+message.counterweight.link_fail_not_anchor=Linking failed, the selected block in not an anchor.
+message.counterweight.link_error=Linking failed check the server logs for details.

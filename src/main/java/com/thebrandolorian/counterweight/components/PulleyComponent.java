@@ -8,6 +8,8 @@ import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 public class PulleyComponent implements Component<ChunkStore> {
@@ -31,13 +33,13 @@ public class PulleyComponent implements Component<ChunkStore> {
     public static ComponentType<ChunkStore, PulleyComponent> getComponentType() {
         return CounterweightPlugin.get().getPulleyComponentType();
     }
+    
+    public PulleyComponent() { }
 
-    private Vector3f axis = new Vector3f(1,0,0);
-    private float angle = 0f;
-    private float radius = 1f;
-
-    // Getters & Setters
-    public Vector3f getAxis(){ return axis; }
+    @Getter private Vector3f axis = new Vector3f(1,0,0);
+    @Getter @Setter private float angle = 0f;
+    @Getter @Setter private float radius = 1f;
+    
     public void setAxis(Vector3f axis) {
         float x = Math.abs(axis.x);
         float y = Math.abs(axis.y);
@@ -47,15 +49,9 @@ public class PulleyComponent implements Component<ChunkStore> {
         else if (y >= x && y >= z) this.axis.assign(0,Math.signum(axis.y),0);
         else this.axis.assign(0,0,Math.signum(axis.z));
     }
-
-    public float getAngle(){ return angle; }
-    public void setAngle(float angle) { this.angle = angle; }
-
-    public float getRadius(){ return radius; }
-    public void setRadius(float radius) { this.radius = radius; }
-
-    @Override
-    public @Nullable Component<ChunkStore> clone() {
+	
+	@Override
+    public Component<ChunkStore> clone() {
         PulleyComponent c = new PulleyComponent();
         c.axis = new Vector3f(axis.x, axis.y, axis.z);
         c.angle = angle;

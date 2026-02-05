@@ -56,12 +56,24 @@
       "Interactions": [
         {
           "Type": "Link",
-          "AllowedBlockTags": [ "Linkable" ],
+          "AllowedBlockTags": [
+            "Linkable"
+          ],
           "DurabilityCost": 1.0,
-          "RunTime": 0.1
+          "RunTime": 0.25,
+          "CancelOnItemChange": true
         }
-      ]
+      ],
+      "RequireNewClick": true
     }
   },
-  "Weapon": {}
+  "Weapon": {},
+  "InteractionConfig": {
+    "DisplayOutlines": false,
+    "UseDistance": {
+      "Adventure": 13,
+      "Creative": 25
+    }
+  },
+  "RenderDeployablePreview": false
 }

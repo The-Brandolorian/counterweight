@@ -19,6 +19,10 @@ repositories {
 }
 
 dependencies {
+    val lombokVersion = "1.18.42"
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
 
@@ -28,7 +32,8 @@ dependencies {
         // Optional: Print a warning so you know why it's missing
         logger.warn("Hytale Assets.zip not found at: ${hytaleAssets.absolutePath}")
     }
-}
+
+    compileOnly(files("${System.getenv("APPDATA")}/Hytale/install/release/package/game/latest/Server/HytaleServer-sources.jar"))}
 
 java {
     toolchain {

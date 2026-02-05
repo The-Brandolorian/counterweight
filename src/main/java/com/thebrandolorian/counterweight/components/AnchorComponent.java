@@ -8,6 +8,8 @@ import com.hypixel.hytale.component.ComponentType;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.thebrandolorian.counterweight.CounterweightPlugin;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,16 +29,14 @@ public class AnchorComponent implements Component<ChunkStore> {
             .build();
 
     public static ComponentType<ChunkStore, AnchorComponent> getComponentType() { return CounterweightPlugin.get().getAnchorComponentType(); }
-
-    private Vector3i position = null;
-    private Set<Vector3i> linkedAnchorPositions = new HashSet<>();
-
-    public void setPosition(Vector3i pos) { this.position = pos; }
-    public @Nullable Vector3i getPosition() { return this.position; }
-
-    public void addAnchor(Vector3i pos) { this.linkedAnchorPositions.add(pos); }
+	
+	public AnchorComponent() { }
+	
+	@Getter(onMethod_ = {@Nullable}) @Setter private Vector3i position = null;
+	@Getter(onMethod_ = {@Nullable}) private Set<Vector3i> linkedAnchorPositions = new HashSet<>();
+ 
+	public void addAnchor(Vector3i pos) { this.linkedAnchorPositions.add(pos); }
     public void removeAnchor(Vector3i pos) { this.linkedAnchorPositions.remove(pos); }
-    public @Nullable Set<Vector3i> getLinkedAnchorPositions() { return this.linkedAnchorPositions; }
 
     @Override
     public @Nonnull AnchorComponent clone() {
